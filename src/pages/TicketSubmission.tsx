@@ -11,8 +11,10 @@ export function TicketSubmission() {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [streamingResponse, setStreamingResponse] = useState("");
+  const [aiDraft, setAiDraft] = useState("");
+  const [reviewerFeedback, setReviewerFeedback] = useState("");
   const [isComplete, setIsComplete] = useState(false);
+  const [showUserMessage, setShowUserMessage] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,8 +30,10 @@ export function TicketSubmission() {
     }
 
     setIsSubmitting(true);
-    setStreamingResponse("");
+    setAiDraft("");
+    setReviewerFeedback("");
     setIsComplete(false);
+    setShowUserMessage(true);
     
     try {
       const response = await fetch("http://localhost:8000/tickets/stream", {
@@ -57,9 +61,19 @@ export function TicketSubmission() {
           
           for (const line of lines) {
             if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              if (data.trim()) {
-                setStreamingResponse(prev => prev + data + ' ');
+              const data = line.slice(6).trim();
+              if (data) {
+                try {
+                  const parsedData = JSON.parse(data);
+                  if (parsedData.draft) {
+                    setAiDraft(parsedData.draft);
+                  }
+                  if (parsedData.reviewer_feedback) {
+                    setReviewerFeedback(parsedData.reviewer_feedback);
+                  }
+                } catch (e) {
+                  console.log('Non-JSON data received:', data);
+                }
               }
             }
           }
@@ -147,44 +161,62 @@ export function TicketSubmission() {
         </CardContent>
       </Card>
 
-      {/* Streaming Response Display */}
-      {(isSubmitting || streamingResponse) && (
-        <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              {isSubmitting && !isComplete ? (
-                <>
-                  <LoaderIcon className="w-5 h-5 animate-spin text-primary" />
-                  <span>AI is analyzing your ticket...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircleIcon className="w-5 h-5 text-success" />
-                  <span>AI Response Complete</span>
-                </>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="p-4 bg-muted/30 rounded-lg min-h-[120px] max-h-[400px] overflow-y-auto">
-              {streamingResponse ? (
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {streamingResponse}
-                  {isSubmitting && !isComplete && (
-                    <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
-                  )}
-                </p>
-              ) : (
-                <div className="flex items-center justify-center h-20">
-                  <div className="flex items-center space-x-2 text-muted-foreground">
-                    <LoaderIcon className="w-4 h-4 animate-spin" />
-                    <span>Waiting for AI response...</span>
-                  </div>
-                </div>
-              )}
+      {/* Chat-style conversation display */}
+      {showUserMessage && (
+        <div className="space-y-4">
+          {/* User Message */}
+          <div className="flex justify-end">
+            <div className="max-w-[80%] bg-primary text-primary-foreground rounded-xl p-4 shadow-sm">
+              <div className="font-medium text-sm mb-1">Your Ticket</div>
+              <div className="font-semibold mb-2">{subject}</div>
+              <div className="text-sm opacity-90">{description}</div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* AI Response */}
+          {(aiDraft || isSubmitting) && (
+            <div className="flex justify-start">
+              <div className="max-w-[80%] bg-card border rounded-xl p-4 shadow-sm">
+                <div className="flex items-center space-x-2 mb-3">
+                  {isSubmitting && !isComplete ? (
+                    <>
+                      <LoaderIcon className="w-4 h-4 animate-spin text-primary" />
+                      <span className="text-sm font-medium text-muted-foreground">AI is responding...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircleIcon className="w-4 h-4 text-success" />
+                      <span className="text-sm font-medium text-muted-foreground">AI Response</span>
+                    </>
+                  )}
+                </div>
+                
+                {aiDraft ? (
+                  <div className="space-y-3">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {aiDraft}
+                      {isSubmitting && !isComplete && (
+                        <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse rounded" />
+                      )}
+                    </p>
+                    
+                    {reviewerFeedback && (
+                      <div className="mt-3 pt-3 border-t border-border/50">
+                        <div className="text-xs text-muted-foreground mb-1">Reviewer Note:</div>
+                        <p className="text-xs text-muted-foreground italic">{reviewerFeedback}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 text-muted-foreground py-4">
+                    <LoaderIcon className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Waiting for AI response...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
