@@ -1,18 +1,18 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { SendIcon, TicketIcon } from "lucide-react";
+import { SendIcon, TicketIcon, LoaderIcon, CheckCircleIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function TicketSubmission() {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const navigate = useNavigate();
+  const [streamingResponse, setStreamingResponse] = useState("");
+  const [isComplete, setIsComplete] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,29 +28,59 @@ export function TicketSubmission() {
     }
 
     setIsSubmitting(true);
+    setStreamingResponse("");
+    setIsComplete(false);
     
-    // Simulate API call
-    setTimeout(() => {
-      toast({
-        title: "Ticket Submitted Successfully",
-        description: "Your support ticket is being processed by our AI agent.",
+    try {
+      const response = await fetch("http://localhost:8000/tickets/stream", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subject, description }),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data.trim()) {
+                setStreamingResponse(prev => prev + data + ' ');
+              }
+            }
+          }
+        }
+      }
       
-      // Store ticket data in localStorage for demo
-      const ticketId = Date.now().toString();
-      const ticketData = {
-        id: ticketId,
-        subject,
-        description,
-        status: "processing",
-        submittedAt: new Date().toISOString(),
-      };
-      
-      localStorage.setItem(`ticket-${ticketId}`, JSON.stringify(ticketData));
-      localStorage.setItem("currentTicketId", ticketId);
-      
-      navigate("/processing");
-    }, 1000);
+      setIsComplete(true);
+      toast({
+        title: "Response Complete",
+        description: "AI analysis finished successfully.",
+      });
+    } catch (error) {
+      console.error('Streaming error:', error);
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to the backend. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -116,6 +146,46 @@ export function TicketSubmission() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Streaming Response Display */}
+      {(isSubmitting || streamingResponse) && (
+        <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              {isSubmitting && !isComplete ? (
+                <>
+                  <LoaderIcon className="w-5 h-5 animate-spin text-primary" />
+                  <span>AI is analyzing your ticket...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircleIcon className="w-5 h-5 text-success" />
+                  <span>AI Response Complete</span>
+                </>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="p-4 bg-muted/30 rounded-lg min-h-[120px] max-h-[400px] overflow-y-auto">
+              {streamingResponse ? (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {streamingResponse}
+                  {isSubmitting && !isComplete && (
+                    <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
+                  )}
+                </p>
+              ) : (
+                <div className="flex items-center justify-center h-20">
+                  <div className="flex items-center space-x-2 text-muted-foreground">
+                    <LoaderIcon className="w-4 h-4 animate-spin" />
+                    <span>Waiting for AI response...</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
