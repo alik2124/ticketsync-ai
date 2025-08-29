@@ -59,27 +59,39 @@ export function TicketSubmission() {
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
           
-          // Keep the last line in buffer in case it's incomplete
-          buffer = lines.pop() || "";
+          // Split by double newline to separate SSE events
+          const events = buffer.split('\n\n');
           
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6).trim();
-              if (data && data !== '') {
+          // Keep the last event in buffer in case it's incomplete
+          buffer = events.pop() || "";
+          
+          for (const event of events) {
+            if (event.trim()) {
+              // Parse SSE format: "event: values\ndata: {...}"
+              const lines = event.split('\n');
+              let eventData = '';
+              
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  eventData = line.slice(6).trim();
+                  break;
+                }
+              }
+              
+              if (eventData) {
                 try {
-                  const parsedData = JSON.parse(data);
+                  const parsedData = JSON.parse(eventData);
                   
                   // Only update if draft or reviewer_feedback exists
-                  if (parsedData.draft) {
+                  if (parsedData.draft !== undefined) {
                     setAiDraft(parsedData.draft);
                   }
-                  if (parsedData.reviewer_feedback) {
+                  if (parsedData.reviewer_feedback !== undefined) {
                     setReviewerFeedback(parsedData.reviewer_feedback);
                   }
                 } catch (e) {
-                  console.log('Non-JSON data received:', data);
+                  console.log('Failed to parse SSE data:', eventData);
                 }
               }
             }
