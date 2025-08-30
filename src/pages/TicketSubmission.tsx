@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SendIcon, TicketIcon, Bot, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ReactMarkdown from "react-markdown";
 
 export function TicketSubmission() {
   const [subject, setSubject] = useState("");
@@ -217,18 +218,8 @@ export function TicketSubmission() {
                 
                 {aiDraft ? (
                   <div className="space-y-3">
-                    <div className="text-sm leading-relaxed">
-                      {/* Format the draft text with proper paragraphs */}
-                      {aiDraft.split('\n\n').map((paragraph, index) => (
-                        <p key={index} className={index > 0 ? 'mt-3' : ''}>
-                          {paragraph.split('\n').map((line, lineIndex) => (
-                            <span key={lineIndex}>
-                              {line}
-                              {lineIndex < paragraph.split('\n').length - 1 && <br />}
-                            </span>
-                          ))}
-                        </p>
-                      ))}
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <ReactMarkdown>{aiDraft}</ReactMarkdown>
                       {isSubmitting && !isComplete && (
                         <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse rounded" />
                       )}
