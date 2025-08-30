@@ -201,8 +201,8 @@ export function TicketSubmission() {
               <div className="flex-shrink-0 w-8 h-8 bg-secondary/10 rounded-full flex items-center justify-center">
                 <Bot className="w-4 h-4 text-secondary-foreground" />
               </div>
-              <div className="max-w-[80%] bg-card border rounded-xl rounded-tl-sm p-4 shadow-sm">
-                <div className="flex items-center space-x-2 mb-3">
+              <div className="max-w-[85%] bg-card border rounded-xl rounded-tl-sm p-5 shadow-lg">
+                <div className="flex items-center space-x-2 mb-4">
                   {isSubmitting && !isComplete ? (
                     <>
                       <div className="w-3 h-3 bg-primary rounded-full animate-pulse" />
@@ -210,32 +210,50 @@ export function TicketSubmission() {
                     </>
                   ) : (
                     <>
-                      <div className="w-3 h-3 bg-green-500 rounded-full" />
-                      <span className="text-sm font-medium text-muted-foreground">AI Response</span>
+                      <div className="w-3 h-3 bg-success rounded-full" />
+                      <span className="text-sm font-medium text-success">AI Response Complete</span>
                     </>
                   )}
                 </div>
                 
                 {aiDraft ? (
-                  <div className="space-y-3">
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <ReactMarkdown>{aiDraft}</ReactMarkdown>
+                  <div className="space-y-4">
+                    <div className="prose prose-sm max-w-none dark:prose-invert prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-ul:text-foreground prose-li:text-foreground">
+                      <ReactMarkdown
+                        components={{
+                          h1: ({children}) => <h1 className="text-lg font-semibold mb-3 text-foreground">{children}</h1>,
+                          h2: ({children}) => <h2 className="text-base font-semibold mb-2 text-foreground">{children}</h2>,
+                          h3: ({children}) => <h3 className="text-sm font-semibold mb-2 text-foreground">{children}</h3>,
+                          p: ({children}) => <p className="mb-2 text-sm leading-relaxed text-foreground">{children}</p>,
+                          ul: ({children}) => <ul className="mb-3 ml-4 space-y-1">{children}</ul>,
+                          ol: ({children}) => <ol className="mb-3 ml-4 space-y-1">{children}</ol>,
+                          li: ({children}) => <li className="text-sm text-foreground">{children}</li>,
+                          strong: ({children}) => <strong className="font-semibold text-foreground">{children}</strong>,
+                          code: ({children}) => <code className="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>,
+                          pre: ({children}) => <pre className="bg-muted p-3 rounded-lg overflow-x-auto text-xs">{children}</pre>
+                        }}
+                      >
+                        {aiDraft}
+                      </ReactMarkdown>
                       {isSubmitting && !isComplete && (
                         <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse rounded" />
                       )}
                     </div>
                     
                     {reviewerFeedback && (
-                      <div className="mt-4 pt-3 border-t border-border/50">
-                        <div className="text-xs font-medium text-muted-foreground mb-1">Reviewer Note:</div>
+                      <div className="mt-4 pt-3 border-t border-border/50 bg-muted/30 rounded-lg p-3">
+                        <div className="flex items-center space-x-1 mb-2">
+                          <div className="w-2 h-2 bg-warning rounded-full" />
+                          <span className="text-xs font-medium text-warning">Reviewer Note</span>
+                        </div>
                         <p className="text-xs text-muted-foreground italic leading-relaxed">{reviewerFeedback}</p>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="flex items-center space-x-2 text-muted-foreground py-4">
-                    <div className="w-4 h-4 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
-                    <span className="text-sm">Waiting for AI response...</span>
+                  <div className="flex items-center space-x-3 text-muted-foreground py-6">
+                    <div className="w-5 h-5 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+                    <span className="text-sm">Analyzing your request and preparing response...</span>
                   </div>
                 )}
               </div>
