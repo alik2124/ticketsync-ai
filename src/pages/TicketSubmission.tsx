@@ -217,17 +217,27 @@ export function TicketSubmission() {
                 
                 {aiDraft ? (
                   <div className="space-y-3">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                      {aiDraft}
+                    <div className="text-sm leading-relaxed">
+                      {/* Format the draft text with proper paragraphs */}
+                      {aiDraft.split('\n\n').map((paragraph, index) => (
+                        <p key={index} className={index > 0 ? 'mt-3' : ''}>
+                          {paragraph.split('\n').map((line, lineIndex) => (
+                            <span key={lineIndex}>
+                              {line}
+                              {lineIndex < paragraph.split('\n').length - 1 && <br />}
+                            </span>
+                          ))}
+                        </p>
+                      ))}
                       {isSubmitting && !isComplete && (
                         <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse rounded" />
                       )}
-                    </p>
+                    </div>
                     
                     {reviewerFeedback && (
-                      <div className="mt-3 pt-3 border-t border-border/50">
-                        <div className="text-xs text-muted-foreground mb-1">Reviewer Note:</div>
-                        <p className="text-xs text-muted-foreground italic">{reviewerFeedback}</p>
+                      <div className="mt-4 pt-3 border-t border-border/50">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">Reviewer Note:</div>
+                        <p className="text-xs text-muted-foreground italic leading-relaxed">{reviewerFeedback}</p>
                       </div>
                     )}
                   </div>
